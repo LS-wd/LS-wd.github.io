@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.lvshuo.online').hostname,
+    root: '/',
+    scheme: 'Mist',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"hide","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。比赛平台的拓扑图如下：服务器全部以docker形式部署在同一台虚拟机上。 Check_server：服务检查服务器，用于判定选手维护的服务是否可用，如果不可用，则会扣除相应的分数。不开启任何端口。需要与flag服务器通信。   Flag_server：选">
+<meta name="keywords" content="信息安全学习">
+<meta property="og:type" content="article">
+<meta property="og:title" content="新版Ubuntu下搭建攻防模拟平台（awd-platform）">
+<meta property="og:url" content="https:&#x2F;&#x2F;blog.lvshuo.online&#x2F;2019&#x2F;11&#x2F;28&#x2F;AWD%E6%90%AD%E5%BB%BA&#x2F;index.html">
+<meta property="og:site_name" content="LS私人博客">
+<meta property="og:description" content="线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。比赛平台的拓扑图如下：服务器全部以docker形式部署在同一台虚拟机上。 Check_server：服务检查服务器，用于判定选手维护的服务是否可用，如果不可用，则会扣除相应的分数。不开启任何端口。需要与flag服务器通信。   Flag_server：选">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-11-28T09:14:08.444Z">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://blog.lvshuo.online/2019/11/28/AWD%E6%90%AD%E5%BB%BA/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>新版Ubuntu下搭建攻防模拟平台（awd-platform） | LS私人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">LS私人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">私人分享内容的博客</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.lvshuo.online/2019/11/28/AWD%E6%90%AD%E5%BB%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="LS">
+      <meta itemprop="description" content="LS个人运维">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="LS私人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          新版Ubuntu下搭建攻防模拟平台（awd-platform）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-28 17:14:08" itemprop="dateCreated datePublished" datetime="2019-11-28T17:14:08+08:00">2019-11-28</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。"><a href="#线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。" class="headerlink" title="线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。"></a>线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。</h1><h1 id="比赛平台的拓扑图如下："><a href="#比赛平台的拓扑图如下：" class="headerlink" title="比赛平台的拓扑图如下："></a>比赛平台的拓扑图如下：</h1><h2 id="服务器全部以docker形式部署在同一台虚拟机上。"><a href="#服务器全部以docker形式部署在同一台虚拟机上。" class="headerlink" title="服务器全部以docker形式部署在同一台虚拟机上。"></a>服务器全部以docker形式部署在同一台虚拟机上。</h2><blockquote>
+<p>Check_server：<br>服务检查服务器，用于判定选手维护的服务是否可用，如果不可用，则会扣除相应的分数。不开启任何端口。需要与flag服务器通信。</p>
+</blockquote>
+<blockquote>
+<p>Flag_server：<br>选手提交flag的服务器，并存储选手的分数。开启80端口。</p>
+</blockquote>
+<blockquote>
+<p>Web_server：<br>选手连接的服务器，选手需要对其进行维护，并尝试攻击其他队伍的机器。通常开启80端口，22端口，并将端口映射到主机。<br>首先呢，我们需要准备一台Ubuntu16.04版本的虚拟机了。当然如果你是土豪的话，可以准备一台搭载Ubuntu系统的云服务器来进行搭建这个平台，效果更佳哦。</p>
+</blockquote>
+<a id="more"></a>
+<h1 id="第一步，要先给我们系统装上docker（也就是我们所说的容器）。这里我们选择的是docker-ce的最新版本。本人使用的是Ubuntu19版本系统"><a href="#第一步，要先给我们系统装上docker（也就是我们所说的容器）。这里我们选择的是docker-ce的最新版本。本人使用的是Ubuntu19版本系统" class="headerlink" title="第一步，要先给我们系统装上docker（也就是我们所说的容器）。这里我们选择的是docker-ce的最新版本。本人使用的是Ubuntu19版本系统"></a>第一步，要先给我们系统装上docker（也就是我们所说的容器）。这里我们选择的是docker-ce的最新版本。本人使用的是Ubuntu19版本系统</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1．卸载旧版本的docker（要是新安装的系统就可以跳过这步了）</span><br><span class="line">sudo apt-getremove docker docker-engine docker docker.io deocker-ce</span><br><span class="line">2．更新apt包索引</span><br><span class="line"><span class="comment"># sudo apt-get update</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">3．安装一下依赖包</span><br><span class="line">sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common</span><br><span class="line">当遇到E:dpkg 被中断的情况，输入sudo dpkg --configure -a来解决下问题。完成后继续安装依赖包。</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">4．添加官方密钥</span><br><span class="line"></span><br><span class="line">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">5．添加下仓库</span><br><span class="line">sudo add-apt-repository \</span><br><span class="line"></span><br><span class="line"><span class="string">"deb [arch=amd64] https://download.docker.com/linux/ubuntu \</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"><span class="variable">$(lsb_release -cs)</span> \</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">stable"</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">6．再次更新下apt包索引</span><br><span class="line"></span><br><span class="line"><span class="comment"># sudo apt-get update</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">7．开始安装docker</span><br><span class="line"></span><br><span class="line">sudo apt-get install docker-ce</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">8．查看docker版本确保我们的docker安装成功。</span><br><span class="line">docker -v</span><br></pre></td></tr></table></figure>
+<h1 id="第二步，将GitHub上的项目克隆下来，搭建起训练平台。"><a href="#第二步，将GitHub上的项目克隆下来，搭建起训练平台。" class="headerlink" title="第二步，将GitHub上的项目克隆下来，搭建起训练平台。"></a>第二步，将GitHub上的项目克隆下来，搭建起训练平台。</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1.克隆github上前辈留下来的开源项目。（有点大，需要花点时间）</span><br><span class="line"></span><br><span class="line">sudo git <span class="built_in">clone</span> https://github.com/zhl2008/awd-platform.git</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">2．进入克隆好的项目里</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> awd-platform/</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">3．下载所需的镜像</span><br><span class="line"></span><br><span class="line">sudo docker pull zhl2008/web_14.04</span><br><span class="line"></span><br><span class="line">此步建议更改一下镜像名字（否则有可能报错）</span><br><span class="line">docker tag zhl2008/web_14.04 web_14.04</span><br></pre></td></tr></table></figure>
+
+<h1 id="至此，AWD环境准备工作已经完成，接下来开始启动AWD环境"><a href="#至此，AWD环境准备工作已经完成，接下来开始启动AWD环境" class="headerlink" title="至此，AWD环境准备工作已经完成，接下来开始启动AWD环境"></a>至此，AWD环境准备工作已经完成，接下来开始启动AWD环境</h1><h2 id="根据队伍数量来copy队伍的比赛文件夹。-建议使用python2命令，环境脚本是基于python2编写的"><a href="#根据队伍数量来copy队伍的比赛文件夹。-建议使用python2命令，环境脚本是基于python2编写的" class="headerlink" title="根据队伍数量来copy队伍的比赛文件夹。(建议使用python2命令，环境脚本是基于python2编写的)"></a>根据队伍数量来copy队伍的比赛文件夹。(建议使用python2命令，环境脚本是基于python2编写的)</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python2 batch.py web_server 2</span><br></pre></td></tr></table></figure>
+<h2 id="启动比赛"><a href="#启动比赛" class="headerlink" title="启动比赛"></a>启动比赛</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python2 start.py ./ 2</span><br></pre></td></tr></table></figure>
+
+<h2 id="启动裁判靶机（check脚本）"><a href="#启动裁判靶机（check脚本）" class="headerlink" title="启动裁判靶机（check脚本）"></a>启动裁判靶机（check脚本）</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker attach check_server</span><br><span class="line"></span><br><span class="line">python2 check.py</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">修改了check时间和flag刷新时间，原版是2分钟刷一次，太快了。所以改成了5分钟一次。修改方法只要将/awd-platform/check_server/gen_flag.py  的time_span 变量设置为5*60即可，也可以改成其他的，同理还有/awd-platform/flag_server/config.php 的 min_time_span变量设置为300、/awd-platform/flag.py 变量time_span设置为5*60。</span><br></pre></td></tr></table></figure>
+<h2 id="关闭环境的命令。"><a href="#关闭环境的命令。" class="headerlink" title="关闭环境的命令。"></a>关闭环境的命令。</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python2 stop_clean.py</span><br></pre></td></tr></table></figure>
+
+<h1 id="使用指南"><a href="#使用指南" class="headerlink" title="使用指南"></a>使用指南</h1><h2 id="查看计分板信息：原版中计分板有点low，直接访问ip-8080-score-txt。"><a href="#查看计分板信息：原版中计分板有点low，直接访问ip-8080-score-txt。" class="headerlink" title="查看计分板信息：原版中计分板有点low，直接访问ip:8080/score.txt。"></a>查看计分板信息：原版中计分板有点low，直接访问ip:8080/score.txt。</h2><h2 id="靶机端口规则：-假设服务器ip为192-168-1-1"><a href="#靶机端口规则：-假设服务器ip为192-168-1-1" class="headerlink" title="靶机端口规则：(假设服务器ip为192.168.1.1)"></a>靶机端口规则：(假设服务器ip为192.168.1.1)</h2><pre><code> Team1：192.168.1.1:8801
+ Team2：192.168.1.1:8802
+ Team3：192.168.1.1:8803
+ ……
+ 以此类推
+
+各个靶机的ssh密码可以在项目的文件夹下的pass.txt文件中，开始比赛时告知各个选手ssh密码。</code></pre><h2 id="SSH的端口规则为：-假设服务器ip为192-168-1-1"><a href="#SSH的端口规则为：-假设服务器ip为192-168-1-1" class="headerlink" title="SSH的端口规则为：(假设服务器ip为192.168.1.1)"></a>SSH的端口规则为：(假设服务器ip为192.168.1.1)</h2><pre><code>Team1：192.168.1.1:2201
+Team2：192.168.1.1:2202
+Team3：192.168.1.1:2203
+  ……
+以此类推</code></pre><h2 id="提交flag方法：-假设服务器ip为192-168-1-1"><a href="#提交flag方法：-假设服务器ip为192-168-1-1" class="headerlink" title="提交flag方法：(假设服务器ip为192.168.1.1)"></a>提交flag方法：(假设服务器ip为192.168.1.1)</h2><pre><code>http://192.168.1.1:8080/flag_file.php?token=teamX&amp;flag=xxxx
+(teamX中的X为自己队伍号，flag为其他队伍的flag)</code></pre><h2 id="攻击情况：-假设服务器ip为192-168-1-1"><a href="#攻击情况：-假设服务器ip为192-168-1-1" class="headerlink" title="攻击情况：(假设服务器ip为192.168.1.1)"></a>攻击情况：(假设服务器ip为192.168.1.1)</h2><pre><code>http://192.168.1.1:8080/result.txt</code></pre>
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>LS
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://blog.lvshuo.online/2019/11/28/AWD%E6%90%AD%E5%BB%BA/" title="新版Ubuntu下搭建攻防模拟平台（awd-platform）">https://blog.lvshuo.online/2019/11/28/AWD搭建/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/null" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E4%BF%A1%E6%81%AF%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0/" rel="tag"># 信息安全学习</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/02/%E6%B7%BB%E5%8A%A0%E9%9F%B3%E4%B9%90%E6%8F%92%E4%BB%B6/" rel="prev" title="添加音乐插件">
+      <i class="fa fa-chevron-left"></i> 添加音乐插件
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/28/%E5%8D%9A%E5%AE%A2%E5%8A%A0%E5%AF%86/" rel="next" title="博客加密功能的实现">
+      博客加密功能的实现 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。"><span class="nav-number">1.</span> <span class="nav-text">线下搭建自己的AWD平台可以练习自己的各种安全知识，深度模拟网络攻防的场景。我们使用github上边开源的一个awd项目来搭建我们自己的练习平台。</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#比赛平台的拓扑图如下："><span class="nav-number">2.</span> <span class="nav-text">比赛平台的拓扑图如下：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器全部以docker形式部署在同一台虚拟机上。"><span class="nav-number">2.1.</span> <span class="nav-text">服务器全部以docker形式部署在同一台虚拟机上。</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#第一步，要先给我们系统装上docker（也就是我们所说的容器）。这里我们选择的是docker-ce的最新版本。本人使用的是Ubuntu19版本系统"><span class="nav-number">3.</span> <span class="nav-text">第一步，要先给我们系统装上docker（也就是我们所说的容器）。这里我们选择的是docker-ce的最新版本。本人使用的是Ubuntu19版本系统</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#第二步，将GitHub上的项目克隆下来，搭建起训练平台。"><span class="nav-number">4.</span> <span class="nav-text">第二步，将GitHub上的项目克隆下来，搭建起训练平台。</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#至此，AWD环境准备工作已经完成，接下来开始启动AWD环境"><span class="nav-number">5.</span> <span class="nav-text">至此，AWD环境准备工作已经完成，接下来开始启动AWD环境</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#根据队伍数量来copy队伍的比赛文件夹。-建议使用python2命令，环境脚本是基于python2编写的"><span class="nav-number">5.1.</span> <span class="nav-text">根据队伍数量来copy队伍的比赛文件夹。(建议使用python2命令，环境脚本是基于python2编写的)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动比赛"><span class="nav-number">5.2.</span> <span class="nav-text">启动比赛</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动裁判靶机（check脚本）"><span class="nav-number">5.3.</span> <span class="nav-text">启动裁判靶机（check脚本）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关闭环境的命令。"><span class="nav-number">5.4.</span> <span class="nav-text">关闭环境的命令。</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#使用指南"><span class="nav-number">6.</span> <span class="nav-text">使用指南</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#查看计分板信息：原版中计分板有点low，直接访问ip-8080-score-txt。"><span class="nav-number">6.1.</span> <span class="nav-text">查看计分板信息：原版中计分板有点low，直接访问ip:8080/score.txt。</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#靶机端口规则：-假设服务器ip为192-168-1-1"><span class="nav-number">6.2.</span> <span class="nav-text">靶机端口规则：(假设服务器ip为192.168.1.1)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSH的端口规则为：-假设服务器ip为192-168-1-1"><span class="nav-number">6.3.</span> <span class="nav-text">SSH的端口规则为：(假设服务器ip为192.168.1.1)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#提交flag方法：-假设服务器ip为192-168-1-1"><span class="nav-number">6.4.</span> <span class="nav-text">提交flag方法：(假设服务器ip为192.168.1.1)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#攻击情况：-假设服务器ip为192-168-1-1"><span class="nav-number">6.5.</span> <span class="nav-text">攻击情况：(假设服务器ip为192.168.1.1)</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">LS</p>
+  <div class="site-description" itemprop="description">LS个人运维</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="sidebar-button motion-element"><i class="fa fa-comment"></i>
+    Chat
+  </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LS</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/muse.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
